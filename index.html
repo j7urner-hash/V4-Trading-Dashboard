@@ -3,153 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Alpha Pro Terminal</title>
+    <title>Alpha Terminal Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #050507; font-family: 'Inter', sans-serif; color: #fff; overflow-x: hidden; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+        body { background: #050507; color: #fff; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
         .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
         .indicator-pill { font-size: 8px; padding: 2px 6px; border-radius: 4px; font-weight: 800; border: 1px solid rgba(255,255,255,0.1); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="pb-28">
+<body class="pb-24">
 
-    <div class="flex overflow-x-auto bg-black/50 border-b border-white/10 no-scrollbar mb-4">
-        <div class="min-w-[120px] p-3 border-r border-white/5">
-            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">S&P 500</p>
-            <p id="index-SPY" class="text-sm font-mono font-bold text-blue-400">$---.--</p>
-        </div>
-        <div class="min-w-[120px] p-3 border-r border-white/5">
-            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Nasdaq</p>
-            <p id="index-QQQ" class="text-sm font-mono font-bold text-blue-400">$---.--</p>
+    <div class="p-4 flex justify-between items-center border-b border-white/5">
+        <h1 class="text-lg font-bold tracking-tighter" id="view-title">DASHBOARD</h1>
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-[10px] font-mono text-emerald-500 uppercase">Live</span>
         </div>
     </div>
 
-    <div class="p-4">
-        <header class="flex justify-between items-center mb-6">
-            <h1 id="view-title" class="text-xl font-bold tracking-tighter">DASHBOARD</h1>
-            <span id="system-status" class="text-[9px] text-emerald-500 font-mono">ONLINE</span>
-        </header>
+    <nav class="flex justify-around p-2 border-b border-white/5 bg-black/20">
+        <button onclick="switchTab('dash')" id="btn-dash" class="pb-2 text-[10px] font-bold tab-active">WATCH</button>
+        <button onclick="switchTab('scan')" id="btn-scan" class="pb-2 text-[10px] font-bold text-gray-500">SCANNER</button>
+        <button onclick="switchTab('news')" id="btn-news" class="pb-2 text-[10px] font-bold text-gray-500">NEWS</button>
+    </nav>
 
-        <nav class="flex justify-between border-b border-white/5 mb-6 text-gray-500">
-            <button onclick="switchTab('dash')" id="btn-dash" class="pb-2 text-xs font-bold tab-active">WATCH</button>
-            <button onclick="switchTab('scan')" id="btn-scan" class="pb-2 text-xs font-bold">SCANNER</button>
-            <button onclick="switchTab('news')" id="btn-news" class="pb-2 text-xs font-bold">LATEST NEWS</button>
-        </nav>
+    <div id="main-content" class="p-4 space-y-3">
+        </div>
 
-        <div id="main-content" class="space-y-3"></div>
-    </div>
-
-    <nav class="fixed bottom-6 left-4 right-4 glass backdrop-blur-xl p-4 flex justify-around items-center shadow-2xl z-50">
-        <button onclick="switchTab('dash')"><i data-lucide="layout-dashboard" class="w-5 h-5 text-blue-500"></i></button>
-        <button onclick="switchTab('scan')"><i data-lucide="radar" class="w-5 h-5 text-gray-500"></i></button>
-        <button onclick="location.reload()" class="bg-blue-600 p-3 rounded-2xl -mt-12 border-4 border-[#050507]"><i data-lucide="refresh-cw" class="w-5 h-5 text-white"></i></button>
-        <button onclick="switchTab('news')"><i data-lucide="newspaper" class="w-5 h-5 text-gray-500"></i></button>
-        <i data-lucide="settings" class="w-5 h-5 text-gray-500"></i>
+    <nav class="fixed bottom-6 left-4 right-4 glass backdrop-blur-xl p-4 flex justify-around items-center z-50">
+        <button onclick="switchTab('dash')"><i data-lucide="layout-grid"></i></button>
+        <button onclick="switchTab('scan')"><i data-lucide="radar"></i></button>
+        <button onclick="location.reload()" class="bg-blue-600 p-3 rounded-xl -mt-10"><i data-lucide="refresh-cw" class="text-white"></i></button>
+        <button onclick="switchTab('news')"><i data-lucide="newspaper"></i></button>
     </nav>
 
     <script>
         const POLYGON_KEY = '9pYXz9POwy1yGAVDQEcfYdMQfMiVApxu';
-        let currentTab = 'dash';
-        let scannerResults = { buys: [], sells: [] };
-
         lucide.createIcons();
 
         function switchTab(tab) {
-            currentTab = tab;
-            const title = { dash: 'DASHBOARD', scan: 'RADAR SCANNER', news: 'MARKET NEWS' };
-            document.getElementById('view-title').innerText = title[tab];
+            const container = document.getElementById('main-content');
+            const title = document.getElementById('view-title');
             
+            // UI Toggle
             ['dash', 'scan', 'news'].forEach(t => {
                 document.getElementById(`btn-${t}`).classList.toggle('tab-active', t === tab);
+                document.getElementById(`btn-${t}`).classList.toggle('text-gray-500', t !== tab);
             });
 
-            if (tab === 'dash') renderDashboard();
-            if (tab === 'scan') runAutoScan();
-            if (tab === 'news') fetchNews();
+            if(tab === 'dash') {
+                title.innerText = "DASHBOARD";
+                renderDashboard();
+            } else if(tab === 'scan') {
+                title.innerText = "ALPHA RADAR";
+                renderScanner();
+            } else {
+                title.innerText = "MARKET NEWS";
+                renderNews();
+            }
         }
 
-        // --- DASHBOARD VIEW ---
         function renderDashboard() {
             const container = document.getElementById('main-content');
             container.innerHTML = `
-                <div class="glass p-4 mb-4 border-l-4 border-blue-500">
-                    <p class="text-xs font-bold mb-1 uppercase">Live Watchlist</p>
-                    <p class="text-[10px] text-gray-500">Monitoring core assets for divergence.</p>
+                <div class="glass p-4 mb-2 flex justify-between items-center">
+                    <div><p class="text-xs font-bold">BTC-USD</p><p class="text-[9px] text-gray-500">BITCOIN</p></div>
+                    <p id="price-BTC-USD" class="text-sm font-mono font-bold">$---.--</p>
                 </div>
-                <div id="dash-list" class="space-y-3"></div>
+                <div class="glass p-4 mb-2 flex justify-between items-center">
+                    <div><p class="text-xs font-bold">ETH-USD</p><p class="text-[9px] text-gray-500">ETHEREUM</p></div>
+                    <p id="price-ETH-USD" class="text-sm font-mono font-bold">$---.--</p>
+                </div>
             `;
-            const list = document.getElementById('dash-list');
-            ['BTC-USD', 'ETH-USD', 'SOL-USD'].forEach(ticker => {
-                list.innerHTML += `
-                    <div class="glass p-4 flex justify-between items-center">
-                        <div><p class="text-sm font-bold">${ticker}</p></div>
-                        <p id="price-${ticker}" class="text-sm font-mono font-bold">$---.--</p>
-                    </div>
-                `;
-            });
         }
 
-        // --- SCANNER VIEW ---
-        async function runAutoScan() {
+        async function renderScanner() {
             const container = document.getElementById('main-content');
-            container.innerHTML = `<p class="text-center py-10 text-xs text-gray-500 animate-pulse">Scanning global markets...</p>`;
-            
+            container.innerHTML = `<p class="text-center py-10 text-[10px] text-gray-500">SCANNING MARKET EXTREMES...</p>`;
             try {
-                const resp = await fetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/gainers?apiKey=${POLYGON_KEY}`);
-                const data = await resp.json();
-                
-                container.innerHTML = `<h3 class="text-[10px] text-gray-500 font-bold mb-3 uppercase">Strong Sells (Overbought)</h3>`;
-                data.tickers.slice(0, 5).forEach(t => {
-                    container.innerHTML += `
-                        <div class="glass p-3 flex justify-between items-center border-r-4 border-red-500/50">
-                            <div><p class="text-sm font-bold">${t.ticker}</p></div>
-                            <div class="text-right">
-                                <p class="text-xs font-bold text-red-400">+${t.todaysChangePerc.toFixed(2)}%</p>
-                                <p class="text-[9px] text-gray-500">RSI: 72+</p>
+                // Using 'Gainers' which is most reliable on free tier
+                const r = await fetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/gainers?apiKey=${POLYGON_KEY}`);
+                const d = await r.json();
+                container.innerHTML = '';
+                if(d.tickers) {
+                    d.tickers.slice(0, 5).forEach(t => {
+                        container.innerHTML += `
+                            <div class="glass p-4 flex justify-between items-center border-r-2 border-red-500">
+                                <div><p class="text-xs font-bold">${t.ticker}</p><p class="text-[9px] text-red-400">+${t.todaysChangePerc.toFixed(1)}%</p></div>
+                                <span class="indicator-pill text-red-400 bg-red-400/10 uppercase">Sell Signal</span>
                             </div>
+                        `;
+                    });
+                }
+            } catch (e) { container.innerHTML = `<p class="text-center text-[10px] text-red-400">Scanner Limit Hit. Wait 1 min.</p>`; }
+        }
+
+        async function renderNews() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = `<p class="text-center py-10 text-[10px] text-gray-500">LOADING HEADLINES...</p>`;
+            try {
+                const r = await fetch(`https://api.polygon.io/v2/reference/news?limit=4&apiKey=${POLYGON_KEY}`);
+                const d = await r.json();
+                container.innerHTML = '';
+                d.results.forEach(n => {
+                    container.innerHTML += `
+                        <div class="glass p-4 mb-2">
+                            <p class="text-[8px] text-blue-400 font-bold uppercase mb-1">${n.source.name}</p>
+                            <h3 class="text-xs font-bold leading-tight">${n.title}</h3>
                         </div>
                     `;
                 });
-            } catch (e) { container.innerHTML = `<p class="text-red-400 text-xs">Scan failed. API limit hit.</p>`; }
+            } catch (e) { container.innerHTML = `<p class="text-center text-[10px] text-red-400">News Offline.</p>`; }
         }
 
-        // --- NEWS VIEW ---
-        async function fetchNews() {
-            const container = document.getElementById('main-content');
-            container.innerHTML = `<p class="text-center py-10 text-xs text-gray-500 animate-pulse">Fetching latest headlines...</p>`;
-            
-            try {
-                const resp = await fetch(`https://api.polygon.io/v2/reference/news?limit=5&apiKey=${POLYGON_KEY}`);
-                const data = await resp.json();
-                container.innerHTML = '';
-                data.results.forEach(n => {
-                    container.innerHTML += `
-                        <a href="${n.article_url}" target="_blank" class="block glass p-4 mb-3">
-                            <p class="text-[9px] text-blue-400 font-bold uppercase mb-1">${n.source.name} • ${new Date(n.published_utc).toLocaleTimeString()}</p>
-                            <h3 class="text-sm font-bold leading-tight">${n.title}</h3>
-                        </a>
-                    `;
-                });
-            } catch (e) { container.innerHTML = `<p class="text-red-400 text-xs text-center">News feed unavailable.</p>`; }
-        }
-
-        // --- GLOBAL FETCHING ---
-        async function fetchIndices() {
-            ['SPY', 'QQQ'].forEach(async (s) => {
-                const r = await fetch(`https://api.polygon.io/v2/last/nbbo/${s}?apiKey=${POLYGON_KEY}`);
-                const d = await r.json();
-                if(d.results) document.getElementById(`index-${s}`).innerText = `$${d.results.P.toFixed(2)}`;
-            });
-        }
+        // --- CRYPTO WEBSOCKET ---
+        const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ type: 'subscribe', product_ids: ['BTC-USD','ETH-USD'], channels: ['ticker'] }));
+        };
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if(data.type === 'ticker') {
+                const el = document.getElementById(`price-${data.product_id}`);
+                if(el) el.innerText = `$${parseFloat(data.price).toLocaleString()}`;
+            }
+        };
 
         // Init
         switchTab('dash');
-        fetchIndices();
     </script>
 </body>
 </html>
