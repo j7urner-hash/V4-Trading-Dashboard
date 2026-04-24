@@ -57,92 +57,106 @@
     </nav>
 
     <script>
-        const POLYGON_KEY = '9pYXz9POwy1yGAVDQEcfYdMQfMiVApxu';
-        let currentTab = 'stocks';
+        // --- API KEYS ---
+const POLYGON_KEY = '9pYXz9POwy1yGAVDQEcfYdMQfMiVApxu';
+let currentTab = 'stocks';
 
-        const alphaData = {
-            stocks: [
-                { s: 'HRMY', n: 'Harmony Bio', rsi: 32, bb: 'Lower Band' },
-                { s: 'LULU', n: 'Lululemon', rsi: 28, bb: 'Oversold' },
-                { s: 'AAPL', n: 'Apple Inc', rsi: 55, bb: 'Neutral' },
-                { s: 'TSLA', n: 'Tesla Motor', rsi: 68, bb: 'Upper Band' },
-                { s: 'NVDA', n: 'NVIDIA Corp', rsi: 72, bb: 'Extreme' }
-            ],
-            crypto: [
-                { s: 'BTC-USD', n: 'Bitcoin', rsi: 45, bb: 'Neutral' },
-                { s: 'SOL-USD', n: 'Solana', rsi: 31, bb: 'Lower Band' },
-                { s: 'ETH-USD', n: 'Ethereum', rsi: 52, bb: 'Neutral' },
-                { s: 'ADA-USD', n: 'Cardano', rsi: 25, bb: 'Oversold' },
-                { s: 'PEPE-USD', n: 'Pepe Coin', rsi: 85, bb: 'Extreme' }
-            ]
-        };
+// These are your target assets
+const alphaData = {
+    stocks: [
+        { s: 'HRMY', n: 'Harmony Bio', rsi: 32 },
+        { s: 'LULU', n: 'Lululemon', rsi: 28 },
+        { s: 'AAPL', n: 'Apple Inc', rsi: 55 },
+        { s: 'TSLA', n: 'Tesla Motor', rsi: 68 },
+        { s: 'NVDA', n: 'NVIDIA Corp', rsi: 72 }
+    ],
+    crypto: [
+        { s: 'BTC-USD', n: 'Bitcoin', rsi: 45 },
+        { s: 'SOL-USD', n: 'Solana', rsi: 31 },
+        { s: 'ETH-USD', n: 'Ethereum', rsi: 52 },
+        { s: 'ADA-USD', n: 'Cardano', rsi: 25 },
+        { s: 'PEPE-USD', n: 'Pepe Coin', rsi: 85 }
+    ]
+};
 
-        lucide.createIcons();
+lucide.createIcons();
 
-        function switchTab(tab) {
-            currentTab = tab;
-            document.getElementById('btn-stocks').className = tab === 'stocks' ? 'pb-2 text-sm font-bold tab-active' : 'pb-2 text-sm font-bold text-gray-500';
-            document.getElementById('btn-crypto').className = tab === 'crypto' ? 'pb-2 text-sm font-bold tab-active' : 'pb-2 text-sm font-bold text-gray-500';
-            renderList();
-        }
-
-        function renderList() {
-            const container = document.getElementById('list-container');
-            container.innerHTML = '';
-            
-            alphaData[currentTab].forEach(item => {
-                const signal = item.rsi < 35 ? 'BUY' : (item.rsi > 65 ? 'SELL' : 'HOLD');
-                const sigClass = signal === 'BUY' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : (signal === 'SELL' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-gray-400');
-
-                container.innerHTML += `
-                    <div class="glass p-4 flex justify-between items-center animate-fade-in">
-                        <div>
-                            <p class="text-sm font-bold">${item.s}</p>
-                            <p class="text-[9px] text-gray-500 uppercase tracking-tighter">${item.n}</p>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <p class="text-[9px] font-bold text-gray-500 mb-1">RSI: ${item.rsi}</p>
-                                <div class="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
-                                    <div class="h-full ${item.rsi < 35 ? 'bg-emerald-500' : (item.rsi > 65 ? 'bg-red-500' : 'bg-blue-500')}" style="width: ${item.rsi}%"></div>
-                                </div>
-                            </div>
-                            <span class="indicator-pill ${sigClass}">${signal}</span>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // --- FETCH INDEX PERFORMANCE ---
-        async function fetchIndices() {
-            const symbols = ['SPY', 'QQQ', 'DIA'];
-            for (let s of symbols) {
-                try {
-                    const resp = await fetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${s}?apiKey=${POLYGON_KEY}`);
-                    const data = await resp.json();
-                    if (data.ticker) {
-                        const change = data.ticker.todaysChangePerc.toFixed(2);
-                        const el = document.getElementById(`index-${s}`);
-                        el.innerText = `${change > 0 ? '+' : ''}${change}%`;
-                        el.className = `text-sm font-mono font-bold ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
-                    }
-                } catch (e) { console.log("Index fetch fail"); }
+// --- 1. THE INDEX BAR (Using 'Last Quote' instead of 'Snapshot') ---
+async function fetchIndices() {
+    const symbols = ['SPY', 'QQQ', 'DIA'];
+    for (let s of symbols) {
+        try {
+            // Updated Endpoint for Free Tier
+            const resp = await fetch(`https://api.polygon.io/v2/last/nbbo/${s}?apiKey=${POLYGON_KEY}`);
+            const data = await resp.json();
+            if (data.results) {
+                const price = data.results.P; // P is the Ask Price
+                const el = document.getElementById(`index-${s}`);
+                el.innerText = `$${price.toFixed(2)}`;
+                el.className = "text-sm font-mono font-bold text-blue-400";
             }
+            await new Promise(r => setTimeout(r, 1200)); // Delay to stay under 5 calls/min
+        } catch (e) { console.error("Index fetch fail", e); }
+    }
+}
+
+// --- 2. THE CRYPTO ENGINE (Coinbase) ---
+const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
+ws.onopen = () => {
+    ws.send(JSON.stringify({ 
+        type: 'subscribe', 
+        product_ids: alphaData.crypto.map(c => c.s), 
+        channels: ['ticker'] 
+    }));
+};
+
+ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === 'ticker' && data.price) {
+        const priceEl = document.getElementById(`price-${data.product_id}`);
+        if (priceEl) {
+            priceEl.innerText = `$${parseFloat(data.price).toLocaleString()}`;
         }
+    }
+};
 
-        // --- COINBASE FOR CRYPTO TAB ---
-        const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
-        ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'subscribe', product_ids: ['BTC-USD','ETH-USD','SOL-USD'], channels: ['ticker'] }));
-        };
-        // (Crypto price logic would update the list here)
+// --- 3. UI RENDERING ---
+function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('btn-stocks').className = tab === 'stocks' ? 'pb-2 text-sm font-bold tab-active' : 'pb-2 text-sm font-bold text-gray-500';
+    document.getElementById('btn-crypto').className = tab === 'crypto' ? 'pb-2 text-sm font-bold tab-active' : 'pb-2 text-sm font-bold text-gray-500';
+    renderList();
+}
 
-        // Init
-        switchTab('stocks');
-        fetchIndices();
-        setInterval(fetchIndices, 60000); // Indices update every minute
+function renderList() {
+    const container = document.getElementById('list-container');
+    container.innerHTML = '';
+    
+    alphaData[currentTab].forEach(item => {
+        const signal = item.rsi < 35 ? 'BUY' : (item.rsi > 65 ? 'SELL' : 'HOLD');
+        const sigClass = signal === 'BUY' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : (signal === 'SELL' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-gray-400');
 
-    </script>
+        container.innerHTML += `
+            <div class="glass p-4 flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-bold">${item.s}</p>
+                    <p class="text-[9px] text-gray-500 uppercase tracking-tighter">${item.n}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-[11px] font-mono font-bold" id="price-${item.s}">$---.--</p>
+                        <p class="text-[9px] text-gray-500">RSI: ${item.rsi}</p>
+                    </div>
+                    <span class="indicator-pill ${sigClass}">${signal}</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// Initial Launch
+switchTab('stocks');
+fetchIndices();
+setInterval(fetchIndices, 65000); // Refresh indices every 65 seconds to respect free tier
 </body>
 </html>
