@@ -2,114 +2,87 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Alpha Terminal v6.0</title>
+    <title>Alpha Hybrid Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background: #050507; color: #fff; font-family: 'Inter', sans-serif; transition: all 0.3s; }
-        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
-        .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.05); }
+        body { background: #050507; color: #fff; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
+        .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
     </style>
 </head>
 <body class="pb-24">
 
-    <div class="p-6 flex justify-between items-center border-b border-white/5">
-        <div>
-            <h1 id="view-title" class="text-xl font-bold tracking-tighter uppercase">Dashboard</h1>
-            <p id="api-status" class="text-[9px] font-mono text-blue-400">COINBASE: CONNECTED</p>
-        </div>
-        <div class="p-2 glass"><i data-lucide="zap" class="w-4 h-4 text-yellow-500"></i></div>
+    <div class="p-4 border-b border-white/5 flex justify-between items-center">
+        <h1 id="view-title" class="font-bold tracking-tighter uppercase">Market Watch</h1>
+        <div id="status" class="text-[9px] font-mono text-emerald-500 uppercase">System: Live</div>
     </div>
 
-    <nav class="flex border-b border-white/5 bg-black/40 sticky top-0 z-50">
-        <button onclick="switchTab('dash')" id="btn-dash" class="flex-1 py-4 text-[10px] font-bold tab-active uppercase">Watchlist</button>
-        <button onclick="switchTab('scan')" id="btn-scan" class="flex-1 py-4 text-[10px] font-bold text-gray-500 uppercase">Scanner</button>
-        <button onclick="switchTab('news')" id="btn-news" class="flex-1 py-4 text-[10px] font-bold text-gray-500 uppercase">News</button>
+    <nav class="flex border-b border-white/5 bg-black/20">
+        <button onclick="switchTab('dash')" id="btn-dash" class="flex-1 py-4 text-[10px] font-bold tab-active">WATCH</button>
+        <button onclick="switchTab('news')" id="btn-news" class="flex-1 py-4 text-[10px] font-bold text-gray-500">NEWS</button>
     </nav>
 
-    <main id="content-engine" class="p-4 space-y-4">
+    <main id="main-content" class="p-4 space-y-3">
         </main>
 
-    <nav class="fixed bottom-6 left-4 right-4 glass backdrop-blur-xl p-4 flex justify-around items-center shadow-2xl z-50">
-        <button onclick="switchTab('dash')"><i data-lucide="home" class="w-5 h-5 text-gray-400"></i></button>
-        <button onclick="switchTab('scan')"><i data-lucide="search" class="w-5 h-5 text-gray-400"></i></button>
-        <button onclick="location.reload()" class="bg-blue-600 p-3 rounded-2xl -mt-12 shadow-lg"><i data-lucide="refresh-cw" class="w-5 h-5 text-white"></i></button>
-        <button onclick="switchTab('news')"><i data-lucide="book-open" class="w-5 h-5 text-gray-400"></i></button>
-        <button onclick="alert('Settings coming soon')"><i data-lucide="user" class="w-5 h-5 text-gray-400"></i></button>
-    </nav>
-
     <script>
-        const POLYGON_KEY = '9pYXz9POwy1yGAVDQEcfYdMQfMiVApxu';
-        let activeTab = 'dash';
-
-        lucide.createIcons();
+        const ALPHA_KEY = '01U1F4AACQR9R2OW'; // GET ONE AT ALPHAVANTAGE.CO
+        let currentTab = 'dash';
 
         function switchTab(tab) {
-            activeTab = tab;
-            const engine = document.getElementById('content-engine');
-            const title = document.getElementById('view-title');
+            currentTab = tab;
+            document.getElementById('btn-dash').className = tab === 'dash' ? 'flex-1 py-4 text-[10px] font-bold tab-active' : 'flex-1 py-4 text-[10px] font-bold text-gray-500';
+            document.getElementById('btn-news').className = tab === 'news' ? 'flex-1 py-4 text-[10px] font-bold tab-active' : 'flex-1 py-4 text-[10px] font-bold text-gray-500';
             
-            // UI Toggle logic
-            ['dash', 'scan', 'news'].forEach(t => {
-                const btn = document.getElementById(`btn-${t}`);
-                btn.className = (t === tab) ? "flex-1 py-4 text-[10px] font-bold tab-active uppercase" : "flex-1 py-4 text-[10px] font-bold text-gray-500 uppercase";
-            });
-
-            title.innerText = tab === 'dash' ? "Dashboard" : (tab === 'scan' ? "Radar Scanner" : "Market News");
-
-            if (tab === 'dash') renderDashboard();
-            if (tab === 'scan') renderScanner();
-            if (tab === 'news') renderNews();
+            if(tab === 'dash') renderDashboard();
+            if(tab === 'news') fetchMarketNews();
         }
 
         function renderDashboard() {
-            const engine = document.getElementById('content-engine');
-            engine.innerHTML = `
+            const container = document.getElementById('main-content');
+            container.innerHTML = `
                 <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="glass p-4"><p class="text-[9px] text-gray-500">BTC</p><p id="price-BTC-USD" class="text-lg font-mono font-bold">$---</p></div>
-                    <div class="glass p-4"><p class="text-[9px] text-gray-500">ETH</p><p id="price-ETH-USD" class="text-lg font-mono font-bold">$---</p></div>
+                    <div class="glass p-4"><p class="text-[9px] text-gray-400">BTC-USD</p><p id="price-BTC-USD" class="text-lg font-mono font-bold">$---</p></div>
+                    <div class="glass p-4"><p class="text-[9px] text-gray-400">ETH-USD</p><p id="price-ETH-USD" class="text-lg font-mono font-bold">$---</p></div>
                 </div>
-                <div class="glass p-4 flex justify-between items-center border-l-4 border-blue-500">
-                    <div><p class="text-sm font-bold">AAPL</p><p class="text-[9px] text-gray-500">APPLE INC</p></div>
-                    <p class="text-sm font-mono font-bold text-blue-400">Market Open</p>
+                <div class="glass p-4 flex justify-between items-center">
+                    <div><p class="text-xs font-bold uppercase">Equity Watch</p><p class="text-[9px] text-gray-500">Manual Refresh for Stocks</p></div>
+                    <button onclick="fetchStockPrice('AAPL')" class="text-[9px] bg-blue-600 px-2 py-1 rounded">Update AAPL</button>
                 </div>
+                <div id="stock-result" class="text-center text-xs text-gray-500 mt-2"></div>
             `;
         }
 
-        async function renderScanner() {
-            const engine = document.getElementById('content-engine');
-            engine.innerHTML = `<div class="p-10 text-center animate-pulse text-xs text-gray-500">Booting Radar...</div>`;
-            
+        async function fetchStockPrice(symbol) {
+            const resDisplay = document.getElementById('stock-result');
+            resDisplay.innerText = "Fetching...";
             try {
-                const r = await fetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/gainers?apiKey=${POLYGON_KEY}`);
+                const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_KEY}`);
                 const d = await r.json();
-                engine.innerHTML = '<h2 class="text-[10px] font-bold text-gray-500 mb-2 uppercase">Top Volatility (Sells)</h2>';
-                d.tickers.slice(0, 5).forEach(t => {
-                    engine.innerHTML += `
-                        <div class="glass p-4 mb-2 flex justify-between border-r-2 border-red-500">
-                            <span class="font-bold text-sm">${t.ticker}</span>
-                            <span class="text-red-400 font-mono text-xs">+${t.todaysChangePerc.toFixed(1)}%</span>
-                        </div>`;
-                });
-            } catch (e) { engine.innerHTML = `<div class="glass p-8 text-center text-red-400 text-xs uppercase">API Key Rate Limited. <br>Wait 60 seconds.</div>`; }
+                const price = d["Global Quote"]["05. price"];
+                resDisplay.innerText = `${symbol}: $${parseFloat(price).toFixed(2)}`;
+            } catch (e) {
+                resDisplay.innerText = "Rate Limit Hit. Wait 1 min.";
+            }
         }
 
-        async function renderNews() {
-            const engine = document.getElementById('content-engine');
-            engine.innerHTML = `<div class="p-10 text-center animate-pulse text-xs text-gray-500">Scanning Headlines...</div>`;
+        async function fetchMarketNews() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = `<p class="text-center text-xs text-gray-500 py-10">Loading News...</p>`;
             try {
-                const r = await fetch(`https://api.polygon.io/v2/reference/news?limit=5&apiKey=${POLYGON_KEY}`);
+                // Alpha Vantage News Sentiment Endpoint
+                const r = await fetch(`https://www.alphavantage.co/query?function=NEWS_SENTIMENT&limit=5&apikey=${ALPHA_KEY}`);
                 const d = await r.json();
-                engine.innerHTML = '';
-                d.results.forEach(n => {
-                    engine.innerHTML += `
-                        <a href="${n.article_url}" target="_blank" class="block glass p-4 mb-3">
-                            <p class="text-[8px] text-blue-400 font-bold mb-1 uppercase">${n.source.name}</p>
-                            <h3 class="text-xs font-bold leading-snug">${n.title}</h3>
+                container.innerHTML = '';
+                d.feed.slice(0,5).forEach(n => {
+                    container.innerHTML += `
+                        <a href="${n.url}" target="_blank" class="block glass p-4 mb-2">
+                            <p class="text-[8px] text-blue-400 font-bold uppercase mb-1">${n.source}</p>
+                            <h3 class="text-xs font-bold leading-tight">${n.title}</h3>
                         </a>`;
                 });
-            } catch (e) { engine.innerHTML = `<div class="glass p-8 text-center text-red-400 text-xs">News API Blocked.</div>`; }
+            } catch (e) { container.innerHTML = `<p class="text-red-400 text-xs text-center">News Temporarily Offline.</p>`; }
         }
 
         // --- CRYPTO FEED ---
@@ -123,8 +96,8 @@
             }
         };
 
-        // Initialize
-        switchTab('dash');
+        renderDashboard();
+        lucide.createIcons();
     </script>
 </body>
 </html>
