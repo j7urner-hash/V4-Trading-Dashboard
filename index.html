@@ -14,34 +14,40 @@
         .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
         .indicator-pill { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; border: 1px solid rgba(255,255,255,0.1); }
         .index-card { min-width: 120px; padding: 10px; border-right: 1px solid rgba(255,255,255,0.05); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="pb-28">
 
     <div class="flex overflow-x-auto bg-black/50 border-b border-white/10 no-scrollbar mb-4">
         <div class="index-card">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">S&P 500 (SPY)</p>
-            <p id="index-SPY" class="text-sm font-mono font-bold text-emerald-400">0.00%</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">S&P 500</p>
+            <p id="index-SPY" class="text-sm font-mono font-bold text-blue-400">$---.--</p>
         </div>
         <div class="index-card">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Nasdaq (QQQ)</p>
-            <p id="index-QQQ" class="text-sm font-mono font-bold text-emerald-400">0.00%</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Nasdaq</p>
+            <p id="index-QQQ" class="text-sm font-mono font-bold text-blue-400">$---.--</p>
         </div>
         <div class="index-card">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Dow Jones (DIA)</p>
-            <p id="index-DIA" class="text-sm font-mono font-bold text-emerald-400">0.00%</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Dow Jones</p>
+            <p id="index-DIA" class="text-sm font-mono font-bold text-blue-400">$---.--</p>
         </div>
     </div>
 
     <div class="p-4">
         <header class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-bold tracking-tighter">Alpha Terminal</h1>
-            <div class="p-2 bg-blue-500/10 rounded-full"><i data-lucide="shield-check" class="w-4 h-4 text-blue-400"></i></div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tighter uppercase">Alpha Terminal</h1>
+                <p class="text-[9px] text-emerald-500 font-mono">SYSTEM: ONLINE</p>
+            </div>
+            <div class="p-2 bg-blue-500/10 rounded-full border border-blue-500/20">
+                <i data-lucide="shield-check" class="w-4 h-4 text-blue-400"></i>
+            </div>
         </header>
 
         <nav class="flex gap-8 border-b border-white/5 mb-6">
             <button onclick="switchTab('stocks')" id="btn-stocks" class="pb-2 text-sm font-bold tab-active transition">STOCKS</button>
-            <button onclick="switchTab('crypto')" id="btn-crypto" class="pb-2 text-sm font-bold text-gray-500 transition">CRYPTO</button>
+            <button onclick="switchTab('crypto')" id="btn-crypto" class="pb-2 text-sm font-bold text-gray-500 transition uppercase">Crypto</button>
         </nav>
 
         <section id="list-container" class="space-y-3">
@@ -51,112 +57,116 @@
     <nav class="fixed bottom-6 left-4 right-4 glass backdrop-blur-xl p-4 flex justify-around items-center shadow-2xl z-50">
         <i data-lucide="layout-grid" class="w-5 h-5 text-blue-500"></i>
         <i data-lucide="bar-chart-3" class="w-5 h-5 text-gray-500"></i>
-        <button onclick="window.location.reload()" class="bg-blue-600 p-3 rounded-2xl -mt-12 border-4 border-[#050507]"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+        <button onclick="window.location.reload()" class="bg-blue-600 p-3 rounded-2xl -mt-12 border-4 border-[#050507] text-white shadow-lg">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+        </button>
         <i data-lucide="target" class="w-5 h-5 text-gray-500"></i>
         <i data-lucide="settings" class="w-5 h-5 text-gray-500"></i>
     </nav>
 
     <script>
-        // --- API KEYS ---
-const POLYGON_KEY = '9pYXz9POwy1yGAVDQEcfYdMQfMiVApxu';
-let currentTab = 'stocks';
+        // --- CONFIG & DATA ---
+        const POLYGON_KEY = '9pYXz9POwy1yGAVDQEcfYdMQfMiVApxu';
+        let currentTab = 'stocks';
 
-// These are your target assets
-const alphaData = {
-    stocks: [
-        { s: 'HRMY', n: 'Harmony Bio', rsi: 32 },
-        { s: 'LULU', n: 'Lululemon', rsi: 28 },
-        { s: 'AAPL', n: 'Apple Inc', rsi: 55 },
-        { s: 'TSLA', n: 'Tesla Motor', rsi: 68 },
-        { s: 'NVDA', n: 'NVIDIA Corp', rsi: 72 }
-    ],
-    crypto: [
-        { s: 'BTC-USD', n: 'Bitcoin', rsi: 45 },
-        { s: 'SOL-USD', n: 'Solana', rsi: 31 },
-        { s: 'ETH-USD', n: 'Ethereum', rsi: 52 },
-        { s: 'ADA-USD', n: 'Cardano', rsi: 25 },
-        { s: 'PEPE-USD', n: 'Pepe Coin', rsi: 85 }
-    ]
-};
+        const alphaData = {
+            stocks: [
+                { s: 'HRMY', n: 'Harmony Bio', rsi: 32 },
+                { s: 'LULU', n: 'Lululemon', rsi: 28 },
+                { s: 'AAPL', n: 'Apple Inc', rsi: 55 },
+                { s: 'TSLA', n: 'Tesla Motor', rsi: 68 },
+                { s: 'NVDA', n: 'NVIDIA Corp', rsi: 72 }
+            ],
+            crypto: [
+                { s: 'BTC-USD', n: 'Bitcoin', rsi: 45 },
+                { s: 'SOL-USD', n: 'Solana', rsi: 31 },
+                { s: 'ETH-USD', n: 'Ethereum', rsi: 52 },
+                { s: 'ADA-USD', n: 'Cardano', rsi: 25 },
+                { s: 'PEPE-USD', n: 'Pepe Coin', rsi: 85 }
+            ]
+        };
 
-lucide.createIcons();
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
-// --- 1. THE INDEX BAR (Using 'Last Quote' instead of 'Snapshot') ---
-async function fetchIndices() {
-    const symbols = ['SPY', 'QQQ', 'DIA'];
-    for (let s of symbols) {
-        try {
-            // Updated Endpoint for Free Tier
-            const resp = await fetch(`https://api.polygon.io/v2/last/nbbo/${s}?apiKey=${POLYGON_KEY}`);
-            const data = await resp.json();
-            if (data.results) {
-                const price = data.results.P; // P is the Ask Price
-                const el = document.getElementById(`index-${s}`);
-                el.innerText = `$${price.toFixed(2)}`;
-                el.className = "text-sm font-mono font-bold text-blue-400";
-            }
-            await new Promise(r => setTimeout(r, 1200)); // Delay to stay under 5 calls/min
-        } catch (e) { console.error("Index fetch fail", e); }
-    }
-}
-
-// --- 2. THE CRYPTO ENGINE (Coinbase) ---
-const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
-ws.onopen = () => {
-    ws.send(JSON.stringify({ 
-        type: 'subscribe', 
-        product_ids: alphaData.crypto.map(c => c.s), 
-        channels: ['ticker'] 
-    }));
-};
-
-ws.onmessage = (e) => {
-    const data = JSON.parse(e.data);
-    if (data.type === 'ticker' && data.price) {
-        const priceEl = document.getElementById(`price-${data.product_id}`);
-        if (priceEl) {
-            priceEl.innerText = `$${parseFloat(data.price).toLocaleString()}`;
+        // --- TAB LOGIC ---
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('btn-stocks').className = tab === 'stocks' ? 'pb-2 text-sm font-bold tab-active' : 'pb-2 text-sm font-bold text-gray-500';
+            document.getElementById('btn-crypto').className = tab === 'crypto' ? 'pb-2 text-sm font-bold tab-active uppercase' : 'pb-2 text-sm font-bold text-gray-500 uppercase';
+            renderList();
         }
-    }
-};
 
-// --- 3. UI RENDERING ---
-function switchTab(tab) {
-    currentTab = tab;
-    document.getElementById('btn-stocks').className = tab === 'stocks' ? 'pb-2 text-sm font-bold tab-active' : 'pb-2 text-sm font-bold text-gray-500';
-    document.getElementById('btn-crypto').className = tab === 'crypto' ? 'pb-2 text-sm font-bold tab-active' : 'pb-2 text-sm font-bold text-gray-500';
-    renderList();
-}
+        function renderList() {
+            const container = document.getElementById('list-container');
+            container.innerHTML = '';
+            
+            alphaData[currentTab].forEach(item => {
+                const signal = item.rsi < 35 ? 'BUY' : (item.rsi > 65 ? 'SELL' : 'HOLD');
+                const sigClass = signal === 'BUY' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : (signal === 'SELL' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-gray-400');
 
-function renderList() {
-    const container = document.getElementById('list-container');
-    container.innerHTML = '';
-    
-    alphaData[currentTab].forEach(item => {
-        const signal = item.rsi < 35 ? 'BUY' : (item.rsi > 65 ? 'SELL' : 'HOLD');
-        const sigClass = signal === 'BUY' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : (signal === 'SELL' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-gray-400');
-
-        container.innerHTML += `
-            <div class="glass p-4 flex justify-between items-center">
-                <div>
-                    <p class="text-sm font-bold">${item.s}</p>
-                    <p class="text-[9px] text-gray-500 uppercase tracking-tighter">${item.n}</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="text-right">
-                        <p class="text-[11px] font-mono font-bold" id="price-${item.s}">$---.--</p>
-                        <p class="text-[9px] text-gray-500">RSI: ${item.rsi}</p>
+                container.innerHTML += `
+                    <div class="glass p-4 flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-bold">${item.s}</p>
+                            <p class="text-[9px] text-gray-500 uppercase tracking-tighter font-medium">${item.n}</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <p class="text-[11px] font-mono font-bold" id="price-${item.s}">$---.--</p>
+                                <p class="text-[9px] text-gray-500">RSI: ${item.rsi}</p>
+                            </div>
+                            <span class="indicator-pill ${sigClass}">${signal}</span>
+                        </div>
                     </div>
-                    <span class="indicator-pill ${sigClass}">${signal}</span>
-                </div>
-            </div>
-        `;
-    });
-}
+                `;
+            });
+        }
 
-// Initial Launch
-switchTab('stocks');
-fetchIndices();
-setInterval(fetchIndices, 65000); // Refresh indices every 65 seconds to respect free tier
+        // --- INDEX FETCH (Polygon Free Tier NBBO) ---
+        async function fetchIndices() {
+            const symbols = ['SPY', 'QQQ', 'DIA'];
+            for (let s of symbols) {
+                try {
+                    const resp = await fetch(`https://api.polygon.io/v2/last/nbbo/${s}?apiKey=${POLYGON_KEY}`);
+                    const data = await resp.json();
+                    if (data.results) {
+                        const price = data.results.P; // Best Ask Price
+                        const el = document.getElementById(`index-${s}`);
+                        el.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                        el.className = "text-sm font-mono font-bold text-blue-400";
+                    }
+                    // Wait to prevent 429 Error
+                    await new Promise(r => setTimeout(r, 1200)); 
+                } catch (e) { console.error("Index fetch error:", e); }
+            }
+        }
+
+        // --- CRYPTO WEBSOCKET (Coinbase Exchange) ---
+        const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ 
+                type: 'subscribe', 
+                product_ids: alphaData.crypto.map(c => c.s), 
+                channels: ['ticker'] 
+            }));
+        };
+
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'ticker' && data.price) {
+                const priceEl = document.getElementById(`price-${data.product_id}`);
+                if (priceEl) {
+                    priceEl.innerText = `$${parseFloat(data.price).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                }
+            }
+        };
+
+        // --- INITIALIZE ---
+        switchTab('stocks');
+        fetchIndices();
+        setInterval(fetchIndices, 65000); // Respect 5/min limit
+
+    </script>
 </body>
 </html>
