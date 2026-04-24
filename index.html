@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Hybrid Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #050507; font-family: 'Inter', sans-serif; color: #fff; -webkit-tap-highlight-color: transparent; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; }
+        .heatmap-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+        .divergence-active { background: linear-gradient(45deg, #fbbf24, #f59e0b) !important; color: #000 !important; border: 2px solid #fff !important; font-weight: bold; }
+        #log-container::-webkit-scrollbar { width: 0; }
+    </style>
+</head>
+<body class="p-4 pb-24">
+
+    <header class="flex justify-between items-center mb-6">
+        <div>
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Trading Engine v3.0</p>
+            <h1 class="text-3xl font-mono font-bold text-blue-500" id="main-balance">$100,000.00</h1>
+        </div>
+        <div class="p-2 bg-blue-500/10 rounded-full border border-blue-500/20">
+            <i data-lucide="activity" class="w-6 h-6 text-blue-400"></i>
+        </div>
+    </header>
+
+    <section class="mb-8">
+        <h2 class="text-[10px] text-gray-500 uppercase font-bold mb-3 tracking-widest">Live Portfolio Risk</h2>
+        <div class="heatmap-grid">
+            <div id="heatmap-nvda" class="glass p-4 flex flex-col justify-between transition-all duration-700">
+                <div class="flex justify-between items-start">
+                    <span class="text-[10px] font-bold uppercase tracking-tight text-emerald-400">NVDA (Polygon)</span>
+                    <i data-lucide="trending-up" class="w-4 h-4 opacity-50"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-mono font-bold" id="price-NVDA">$---.--</p>
+                    <p class="text-[10px] font-bold" id="change-NVDA">Fetching...</p>
+                </div>
+            </div>
+            <div id="heatmap-btc" class="glass p-4 flex flex-col justify-between">
+                <span class="text-[10px] font-bold uppercase text-orange-400">BTC-USD</span>
+                <p class="text-sm font-mono font-bold" id="price-BTC">$---.--</p>
+                <p class="text-[10px]" id="change-BTC">0.00%</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass p-4 mb-8 border-l-4 border-yellow-500 bg-yellow-500/5">
+        <div class="flex justify-between items-center mb-1">
+            <h3 class="text-[10px] font-bold uppercase text-yellow-500 tracking-widest">Alert Logic</h3>
+            <span class="text-[10px] font-mono text-gray-500">2026-04-14</span>
+        </div>
+        <p class="text-xs text-gray-300 leading-snug">
+            Watching for <span class="text-red-400">BTC Drop (-5%)</span> while <span class="text-emerald-400">NVDA maintains Green</span>.
+        </p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 class="text-[10px] text-gray-500 uppercase font-bold mb-3 tracking-tighter">System Output</h2>
+        <div id="log-container" class="space-y-2 max-h-40 overflow-y-auto pr-2 bg-black/20 p-3 rounded-xl border border-white/5">
+            <div class="text-[10px] font-mono text-blue-400">Connecting to Coinbase...</div>
+        </div>
+    </section>
+
+    <nav class="fixed bottom-6 left-4 right-4 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 flex justify-around items-center shadow-2xl">
+        <button class="text-blue-500"><i data-lucide="layout-grid"></i></button>
+        <button class="text-gray-500"><i data-lucide="bell-ring"></i></button>
+        <button onclick="window.location.reload()" class="bg-blue-600 p-3 rounded-2xl -mt-12 border-4 border-[#050507] text-white shadow-lg"><i data-lucide="refresh-cw"></i></button>
+        <button class="text-gray-500"><i data-lucide="shield"></i></button>
+        <button class="text-gray-500"><i data-lucide="settings"></i></button>
+    </nav>
+
+    <script>
+        // --- API KEYS ---
+        const POLYGON_KEY = '9pYXz9POwy1yGAVDQEcfYdMQfMiVApxu';
+        const marketData = {
+            btc: { price: 0, start: 72000, triggered: false }, // Set start to current price for testing
+            nvda: { price: 0, start: 900 }
+        };
+
+        lucide.createIcons();
+
+        // Audio Object
+        const alertSound = new Audio('https://www.soundjay.com/misc/sounds/cash-register-05.mp3');
+
+        function logActivity(msg, type = 'info') {
+            const container = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.className = `text-[10px] font-mono ${type === 'alert' ? 'text-yellow-400 font-bold' : 'text-gray-500'}`;
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            container.prepend(entry);
+        }
+
+        // --- POLYGON (STOCKS) ---
+        async function fetchStocks() {
+            try {
+                const resp = await fetch(`https://api.polygon.io/v2/last/trade/NVDA?apiKey=${POLYGON_KEY}`);
+                const data = await resp.json();
+                if (data.results) {
+                    marketData.nvda.price = data.results.p;
+                    updateUI('NVDA', data.results.p);
+                    checkStrategy();
+                }
+            } catch (e) { logActivity("Polygon API Error", "alert"); }
+        }
+
+        // --- COINBASE (CRYPTO) ---
+        const cbSocket = new WebSocket('wss://ws-feed.exchange.coinbase.com');
+        cbSocket.onopen = () => {
+            cbSocket.send(JSON.stringify({
+                type: 'subscribe',
+                product_ids: ['BTC-USD'],
+                channels: ['ticker']
+            }));
+            logActivity("Coinbase WebSocket Active");
+        };
+
+        cbSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.price) {
+                marketData.btc.price = parseFloat(data.price);
+                updateUI('BTC', marketData.btc.price);
+                checkStrategy();
+            }
+        };
+
+        // --- CORE LOGIC ---
+        function updateUI(ticker, price) {
+            const priceEl = document.getElementById(`price-${ticker}`);
+            const changeEl = document.getElementById(`change-${ticker}`);
+            const start = ticker === 'BTC' ? marketData.btc.start : marketData.nvda.start;
+            const change = ((price - start) / start) * 100;
+
+            priceEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            changeEl.innerText = `${change >= 0 ? '▲' : '▼'} ${change.toFixed(2)}%`;
+            changeEl.className = `text-[10px] font-bold ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+        }
+
+        function checkStrategy() {
+            const btcChange = ((marketData.btc.price - marketData.btc.start) / marketData.btc.start) * 100;
+            const nvdaChange = ((marketData.nvda.price - marketData.nvda.start) / marketData.nvda.start) * 100;
+
+            if (btcChange <= -5 && nvdaChange > 0 && !marketData.btc.triggered) {
+                document.getElementById('heatmap-nvda').classList.add('divergence-active');
+                alertSound.play().catch(e => console.log("Audio blocked - tap screen"));
+                logActivity("STRATEGY TRIGGER: BTC Drop / NVDA Strength", "alert");
+                marketData.btc.triggered = true;
+                
+                if (Notification.permission === "granted") {
+                    new Notification("Market Alert", { body: "Strategy Triggered: Divergence Detected" });
+                }
+            }
+        }
+
+        // Init
+        if (window.Notification) Notification.requestPermission();
+        fetchStocks();
+        setInterval(fetchStocks, 15000); // 15s interval for Polygon Free Tier
+
+    </script>
+</body>
+</html>
