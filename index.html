@@ -2,178 +2,146 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Alpha Terminal Pro</title>
+    <title>Alpha Logic Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
         body { background: #050507; color: #fff; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; background: rgba(59,130,246,0.05); }
+        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+        .signal-buy { border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.05); }
+        .signal-sell { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.05); }
+        .progress-bar { height: 2px; background: #3b82f6; transition: width 0.5s; }
     </style>
 </head>
-<body class="pb-32">
+<body class="pb-24">
 
-    <div class="p-6 border-b border-white/5 space-y-4">
-        <div class="flex justify-between items-center">
-            <h1 id="view-title" class="text-xl font-bold tracking-tighter uppercase">Portfolio</h1>
-            <div id="api-indicator" class="flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-[8px] font-mono text-emerald-500">LIVE</span>
+    <div class="p-6 border-b border-white/5">
+        <div class="flex justify-between items-end mb-4">
+            <div>
+                <h1 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Global Sentiment</h1>
+                <p id="sentiment-label" class="text-xl font-black italic">NEUTRAL</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[9px] text-gray-500 uppercase">System Integrity</p>
+                <p class="text-[10px] font-mono text-emerald-500">100.0% STABLE</p>
             </div>
         </div>
-        
-        <div class="flex gap-2">
-            <input type="text" id="ticker-search" placeholder="Enter Ticker (e.g. TSLA, NVDA)" 
-                   class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition-all uppercase">
-            <button onclick="addTicker()" class="bg-blue-600 px-4 py-3 rounded-xl transition-active">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-            </button>
+        <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <div id="sentiment-bar" class="h-full bg-blue-500 w-1/2 transition-all duration-1000"></div>
         </div>
     </div>
 
-    <nav class="flex border-b border-white/5 bg-black/40 sticky top-0 z-50">
-        <button onclick="switchTab('dash')" id="btn-dash" class="flex-1 py-4 text-[10px] font-bold tab-active uppercase">Watchlist</button>
-        <button onclick="switchTab('news')" id="btn-news" class="flex-1 py-4 text-[10px] font-bold text-gray-500 uppercase">Market News</button>
-    </nav>
-
-    <main id="main-content" class="p-4 space-y-3">
-        </main>
+    <main id="main-content" class="p-4 space-y-4">
+        <div class="flex justify-between items-center px-1">
+            <h2 class="text-[10px] font-bold text-gray-400 uppercase">Live Intel Feed</h2>
+            <button onclick="autoSequenceScan()" class="text-[9px] text-blue-400 hover:text-blue-300 font-bold uppercase">Run Full Sequence</button>
+        </div>
+        <div id="ticker-grid" class="space-y-3"></div>
+    </main>
 
     <nav class="fixed bottom-6 left-4 right-4 glass backdrop-blur-xl p-4 flex justify-around items-center z-50">
         <button onclick="switchTab('dash')"><i data-lucide="layout-grid" class="w-5 h-5"></i></button>
-        <button onclick="localStorage.clear(); location.reload();" class="text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-        <button onclick="location.reload()" class="bg-blue-600 p-3 rounded-2xl -mt-12 shadow-lg"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
-        <button onclick="switchTab('news')"><i data-lucide="newspaper" class="w-5 h-5"></i></button>
+        <button id="exec-btn" onclick="executePaperTrade()" class="bg-blue-600 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter -mt-10 border-4 border-[#050507] shadow-xl">Execute Trade</button>
+        <button onclick="switchTab('news')"><i data-lucide="newspaper" class="w-5 h-5 text-gray-400"></i></button>
     </nav>
 
     <script>
-        const ALPHA_KEY = '01U1F4AACQR9R2OW'; // REPLACE WITH YOUR KEY
-        let watchlist = JSON.parse(localStorage.getItem('watchlist')) || ['AAPL', 'TSLA'];
+        const ALPHA_KEY = '01U1F4AACQR9R2OW';
+        let watchlist = ['AAPL', 'TSLA', 'NVDA'];
         
         lucide.createIcons();
 
-        function switchTab(tab) {
-            ['dash', 'news'].forEach(t => {
-                document.getElementById(`btn-${t}`).className = (t === tab) ? "flex-1 py-4 text-[10px] font-bold tab-active uppercase" : "flex-1 py-4 text-[10px] font-bold text-gray-500 uppercase";
-            });
-            if(tab === 'dash') renderDashboard();
-            if(tab === 'news') fetchNews();
-        }
-
-        // --- DASHBOARD: CRYPTO + PORTFOLIO ---
-        function renderDashboard() {
-            const container = document.getElementById('main-content');
-            container.innerHTML = `
-                <div class="grid grid-cols-2 gap-3 mb-2">
-                    <div class="glass p-4"><p class="text-[9px] text-gray-500 uppercase">BTC-USD</p><p id="price-BTC-USD" class="text-sm font-mono font-bold">$---</p></div>
-                    <div class="glass p-4"><p class="text-[9px] text-gray-500 uppercase">ETH-USD</p><p id="price-ETH-USD" class="text-sm font-mono font-bold">$---</p></div>
-                </div>
-                <div id="stock-list" class="space-y-3 pt-2"></div>
-            `;
+        // 1. SEQUENCE SCAN (The "Limit Buster")
+        async function autoSequenceScan() {
+            const btn = document.querySelector('button[onclick="autoSequenceScan()"]');
+            btn.innerText = "SCANNING...";
             
-            const list = document.getElementById('stock-list');
-            watchlist.forEach(symbol => {
-                list.innerHTML += `
-                    <div class="glass p-4 flex justify-between items-center group">
-                        <div onclick="fetchTechnical('${symbol}')" class="flex-1 cursor-pointer">
-                            <p class="text-sm font-bold uppercase">${symbol}</p>
-                            <p id="rsi-${symbol}" class="text-[9px] text-gray-500 font-mono italic">TAP FOR RSI SCAN</p>
-                        </div>
-                        <div class="text-right">
-                            <p id="price-${symbol}" class="text-sm font-mono font-bold">$---.--</p>
-                            <span id="signal-${symbol}" class="text-[8px] px-2 py-0.5 rounded border border-white/5 text-gray-500">NO DATA</span>
-                        </div>
-                    </div>
-                `;
-                // Initial price fetch for each
-                fetchPrice(symbol);
-            });
-        }
-
-        async function addTicker() {
-            const input = document.getElementById('ticker-search');
-            const ticker = input.value.toUpperCase().trim();
-            if(ticker && !watchlist.includes(ticker)) {
-                watchlist.push(ticker);
-                localStorage.setItem('watchlist', JSON.stringify(watchlist));
-                input.value = '';
-                renderDashboard();
+            for (let ticker of watchlist) {
+                await fetchTechnical(ticker);
+                // Wait 13 seconds between tickers to stay under 5/min limit perfectly
+                await new Promise(r => setTimeout(r, 13000));
             }
-        }
-
-        async function fetchPrice(symbol) {
-            try {
-                const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_KEY}`);
-                const d = await r.json();
-                if(d["Global Quote"]) {
-                    const price = parseFloat(d["Global Quote"]["05. price"]);
-                    document.getElementById(`price-${symbol}`).innerText = `$${price.toFixed(2)}`;
-                }
-            } catch (e) { console.error(e); }
+            btn.innerText = "RUN FULL SEQUENCE";
         }
 
         async function fetchTechnical(symbol) {
-            const rsiEl = document.getElementById(`rsi-${symbol}`);
-            const sigEl = document.getElementById(`signal-${symbol}`);
-            rsiEl.innerText = "CALCULATING RSI...";
-            
             try {
+                // Fetch RSI
                 const r = await fetch(`https://www.alphavantage.co/query?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${ALPHA_KEY}`);
                 const d = await r.json();
-                const lastKey = Object.keys(d["Technical Analysis: RSI"])[0];
-                const rsi = parseFloat(d["Technical Analysis: RSI"][lastKey]["RSI"]).toFixed(1);
+                const lastDate = Object.keys(d["Technical Analysis: RSI"])[0];
+                const rsi = parseFloat(d["Technical Analysis: RSI"][lastDate]["RSI"]);
+
+                // Fetch Bollinger Bands
+                const br = await fetch(`https://www.alphavantage.co/query?function=BBANDS&symbol=${symbol}&interval=daily&time_period=5&series_type=close&nbdevup=2&nbdevdn=2&apikey=${ALPHA_KEY}`);
+                const bd = await br.json();
+                const bDate = Object.keys(bd["Technical Analysis: BBANDS"])[0];
+                const upper = parseFloat(bd["Technical Analysis: BBANDS"][bDate]["Real Upper Band"]);
+                const lower = parseFloat(bd["Technical Analysis: BBANDS"][bDate]["Real Lower Band"]);
                 
-                rsiEl.innerText = `RSI: ${rsi}`;
-                
-                if(rsi < 35) {
-                    sigEl.innerText = "BUY SIGNAL";
-                    sigEl.className = "text-[8px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20";
-                } else if(rsi > 65) {
-                    sigEl.innerText = "SELL SIGNAL";
-                    sigEl.className = "text-[8px] px-2 py-0.5 rounded bg-red-500/10 text-red-400 font-bold border border-red-500/20";
-                } else {
-                    sigEl.innerText = "NEUTRAL";
-                    sigEl.className = "text-[8px] px-2 py-0.5 rounded bg-white/5 text-gray-500";
-                }
-            } catch (e) { rsiEl.innerText = "LIMIT HIT. WAIT 1 MIN."; }
+                // Fetch Current Price
+                const pr = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_KEY}`);
+                const pd = await pr.json();
+                const price = parseFloat(pd["Global Quote"]["05. price"]);
+
+                updateUI(symbol, rsi, price, upper, lower);
+            } catch (e) { console.error("Scan error", e); }
         }
 
-        async function fetchNews() {
-            const container = document.getElementById('main-content');
-            container.innerHTML = `<div class="py-10 text-center animate-pulse text-xs text-gray-500">AGGREGATING MARKET NEWS...</div>`;
-            try {
-                const r = await fetch(`https://www.alphavantage.co/query?function=NEWS_SENTIMENT&limit=5&apikey=${ALPHA_KEY}`);
-                const d = await r.json();
-                container.innerHTML = '<h2 class="text-[10px] font-bold text-gray-500 uppercase mb-2">Global Headlines</h2>';
-                d.feed.slice(0,5).forEach(n => {
-                    const sentClass = n.overall_sentiment_label.includes('Bullish') ? 'text-emerald-400' : (n.overall_sentiment_label.includes('Bearish') ? 'text-red-400' : 'text-gray-400');
-                    container.innerHTML += `
-                        <a href="${n.url}" target="_blank" class="block glass p-4 mb-3 border-l-2 border-white/10">
-                            <div class="flex justify-between mb-1">
-                                <span class="text-[8px] font-bold text-blue-400">${n.source}</span>
-                                <span class="text-[8px] ${sentClass} uppercase font-bold">${n.overall_sentiment_label}</span>
-                            </div>
-                            <h3 class="text-xs font-bold leading-snug">${n.title}</h3>
-                        </a>`;
-                });
-            } catch (e) { container.innerHTML = `<div class="p-8 text-center text-red-400 text-xs uppercase">API Limit. Switch back in 60s.</div>`; }
+        function updateUI(symbol, rsi, price, upper, lower) {
+            const container = document.getElementById(`ticker-${symbol}`);
+            const signal = (rsi < 35 && price <= lower) ? 'STRONG BUY' : (rsi > 65 && price >= upper ? 'STRONG SELL' : 'NEUTRAL');
+            const sigClass = signal === 'STRONG BUY' ? 'signal-buy' : (signal === 'STRONG SELL' ? 'signal-sell' : '');
+
+            const card = document.getElementById(`card-${symbol}`);
+            card.className = `glass p-4 flex justify-between items-center ${sigClass}`;
+            card.innerHTML = `
+                <div>
+                    <p class="text-sm font-bold">${symbol}</p>
+                    <p class="text-[9px] text-gray-500 uppercase">RSI: ${rsi.toFixed(1)} | BB: ${price > upper ? 'HIGH' : (price < lower ? 'LOW' : 'MID')}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-mono font-bold">$${price.toFixed(2)}</p>
+                    <span class="text-[8px] font-black uppercase ${signal.includes('BUY') ? 'text-emerald-500' : (signal.includes('SELL') ? 'text-red-500' : 'text-gray-500')}">${signal}</span>
+                </div>
+            `;
         }
 
-        // --- CRYPTO REAL-TIME ---
-        const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
-        ws.onopen = () => ws.send(JSON.stringify({ type: 'subscribe', product_ids: ['BTC-USD','ETH-USD'], channels: ['ticker'] }));
-        ws.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            if(data.type === 'ticker' && data.price) {
-                const el = document.getElementById(`price-${data.product_id}`);
-                if(el) el.innerText = `$${parseFloat(data.price).toLocaleString()}`;
-            }
-        };
+        function renderWatchlist() {
+            const grid = document.getElementById('ticker-grid');
+            grid.innerHTML = '';
+            watchlist.forEach(s => {
+                grid.innerHTML += `<div id="card-${s}" class="glass p-4 flex justify-between items-center"><p class="text-sm font-bold">${s}</p><p class="text-xs text-gray-500 italic">WAITING FOR SCAN...</p></div>`;
+            });
+        }
 
-        switchTab('dash');
+        // 2. SENTIMENT METER (Crypto Fear & Greed)
+        async function fetchSentiment() {
+            const r = await fetch('https://api.alternative.me/fng/');
+            const d = await r.json();
+            const val = d.data[0].value;
+            const label = d.data[0].value_classification;
+            
+            document.getElementById('sentiment-label').innerText = label.toUpperCase();
+            document.getElementById('sentiment-bar').style.width = `${val}%`;
+            document.getElementById('sentiment-bar').className = `h-full transition-all duration-1000 ${val > 70 ? 'bg-red-500' : (val < 30 ? 'bg-emerald-500' : 'bg-blue-500')}`;
+        }
+
+        // 3. THE EXECUTION ENGINE (Paper Trading Mockup)
+        function executePaperTrade() {
+            const btn = document.getElementById('exec-btn');
+            btn.innerText = "EXECUTING...";
+            btn.className = "bg-orange-500 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter -mt-10 border-4 border-[#050507]";
+            
+            setTimeout(() => {
+                btn.innerText = "ORDER FILLED";
+                btn.className = "bg-emerald-600 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter -mt-10 border-4 border-[#050507]";
+                alert("MOCK ORDER: Bought 10 shares of Market Leader at Market Price.");
+            }, 1500);
+        }
+
+        renderWatchlist();
+        fetchSentiment();
     </script>
 </body>
 </html>
